@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<!-- saved from url=(0022)http://localhost:3701/ -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>SolDB</title>
+<style class="anchorjs"></style><style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="./index_files/clipboard.min.js.download"></script>
+<script src="./index_files/quarto.js.download"></script>
+<script src="./index_files/popper.min.js.download"></script>
+<script src="./index_files/tippy.umd.min.js.download"></script>
+<script src="./index_files/anchor.min.js.download"></script>
+<link href="./index_files/tippy.css" rel="stylesheet">
+<link href="./index_files/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="./index_files/bootstrap.min.js.download"></script>
+<link href="./index_files/bootstrap-icons.css" rel="stylesheet">
+<link href="./index_files/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+<style>.ansi-display{font-family:monospace;white-space:pre-wrap;--ansiBlack: #000000;--ansiRed: #cd3131;--ansiGreen: #00BC00;--ansiYellow: #949800;--ansiBlue: #0451a5;--ansiMagenta: #bc05bc;--ansiCyan: #0598bc;--ansiWhite: #555555;--ansiBrightBlack: #666666;--ansiBrightRed: #cd3131;--ansiBrightGreen: #14CE14;--ansiBrightYellow: #b5ba00;--ansiBrightBlue: #0451a5;--ansiBrightMagenta: #bc05bc;--ansiBrightCyan: #0598bc;--ansiBrightWhite: #a5a5a5}.dark-mode .ansi-display{--ansiBlack: #000000;--ansiRed: #cd3131;--ansiGreen: #0DBC79;--ansiYellow: #e5e510;--ansiBlue: #2472c8;--ansiMagenta: #bc3fbc;--ansiCyan: #11a8cd;--ansiWhite: #e5e5e5;--ansiBrightBlack: #666666;--ansiBrightRed: #f14c4c;--ansiBrightGreen: #23d18b;--ansiBrightYellow: #f5f543;--ansiBrightBlue: #3b8eea;--ansiBrightMagenta: #d670d6;--ansiBrightCyan: #29b8db;--ansiBrightWhite: #e5e5e5}@keyframes ansi-displaly-run-blink{50%{opacity:0}}.fui-FluentProvider h2{border-bottom:none;padding-bottom:0}</style><style data-make-styles-bucket="d" data-priority="0"></style><style id="fui-FluentProviderr0"></style></head>
+
+<body class="fullcontent quarto-light" data-tabster="{&quot;root&quot;:{}}">
+
+<i tabindex="0" role="none" data-tabster-dummy="" aria-hidden="true" style="position: fixed; height: 1px; width: 1px; opacity: 0.001; z-index: -1; content-visibility: hidden; top: 0px; left: 0px;"></i><div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">SolDB</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="sol-passadvanced-pass-rates-across-va-counties-compared-against-median-income" class="level1">
+<h1>SOL Pass/Advanced Pass Rates Across VA Counties Compared Against Median Income</h1>
+<p>Purpose of project is to analyze pass rates vs median incomes to see if there is correlation, and what counties need the most help.</p>
+<p>The files necessary to follow along are located <a href="http://localhost:3701/&#39;https://github.com/lwhite01/Data&#39;">here</a>. CountyIncome.csv, SOLScores.csv, and vacounties.csv</p>
+</section>
+<section id="data-wrangling" class="level1">
+<h1>Data Wrangling</h1>
+<section id="loading-data" class="level2">
+<h2 class="anchored" data-anchor-id="loading-data">Loading Data<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#loading-data" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>The first step was to create the data warehouse and the tables to import the csvs into:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>drop database if exists sol_dw_2;
+create database sol_dw_2;
+use sol_dw_2;
+
+CREATE TABLE vacounties (
+    county VARCHAR(100),
+    county_ascii VARCHAR(100),
+    county_full VARCHAR(150),
+    county_fips INT,
+    state_id CHAR(2),
+    state_name VARCHAR(100),
+    lat DECIMAL(8,4),
+    lng DECIMAL(8,4),
+    population INT
+);
+
+CREATE TABLE CountyIncome (
+    _id INT,
+    Year INT,
+    GEO_ID VARCHAR(20),
+    CountyName VARCHAR(100),
+    StateName VARCHAR(100),
+    StateCode INT,
+    CountyCode INT,
+    TotalEstimate INT,
+    TotalMargin INT
+);
+
+CREATE TABLE SOLScores (
+    _id INT,
+    LEVEL VARCHAR(10),
+    Div_Num INT,
+    Div_Name VARCHAR(100),
+    Subject VARCHAR(50),
+    Grade VARCHAR(50),
+    Test VARCHAR(50),
+    PassRate_2020_2021 VARCHAR(10),
+    PassRate_2021_2022 VARCHAR(10),
+    PassRate_2022_2023 VARCHAR(10),
+    AdvPassRate_2020_2021 VARCHAR(10),
+    AdvPassRate_2021_2022 VARCHAR(10),
+    AdvPassRate_2022_2023 VARCHAR(10)
+);</code></pre>
+</div>
+<p>Once the tables were created, I then used “Table Data Import Wizard” to bring the csvs into their respective tables.</p>
+</section>
+<section id="sol-scores" class="level2">
+<h2 class="anchored" data-anchor-id="sol-scores">SOL Scores<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#sol-scores" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>I first needed to check which county/city names were in each table that weren’t in the other. I knew that vacounties matched SOLScores so I only focused on SOLScores and CountyIncome:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>-- Counties in SOLScores but not in CountyIncome
+SELECT DISTINCT s.Div_Name AS Missing_In_CountyIncome
+FROM SOLScores s
+LEFT JOIN CountyIncome c ON LOWER(TRIM(s.Div_Name)) = LOWER(TRIM(c.CountyName))
+WHERE c.CountyName IS NULL;
+
+-- Counties in CountyIncome but not in SOLScores
+SELECT DISTINCT c.CountyName AS Missing_In_SOLScores
+FROM CountyIncome c
+LEFT JOIN SOLScores s ON LOWER(TRIM(c.CountyName)) = LOWER(TRIM(s.Div_Name))
+WHERE s.Div_Name IS NULL;</code></pre>
+</div>
+<p>I used Lower(Trim()) because the joins weren’t working properly leading me to believe there might be some extra spaces somewhere. I then ran into more spacing issues, so I trimmed everything:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>UPDATE SOLScores
+SET 
+    Div_Name = TRIM(Div_Name),
+    LEVEL = TRIM(LEVEL),
+    Subject = TRIM(Subject),
+    Grade = TRIM(Grade),
+    Test = TRIM(Test),
+    PassRate_2020_2021 = TRIM(PassRate_2020_2021),
+    PassRate_2021_2022 = TRIM(PassRate_2021_2022),
+    PassRate_2022_2023 = TRIM(PassRate_2022_2023),
+    AdvPassRate_2020_2021 = TRIM(AdvPassRate_2020_2021),
+    AdvPassRate_2021_2022 = TRIM(AdvPassRate_2021_2022),
+    AdvPassRate_2022_2023 = TRIM(AdvPassRate_2022_2023);
+    
+UPDATE CountyIncome
+SET 
+    GEO_ID = TRIM(GEO_ID),
+    CountyName = TRIM(CountyName),
+    StateName = TRIM(StateName);
+
+UPDATE vacounties
+SET 
+    county = TRIM(county),
+    county_ascii = TRIM(county_ascii),
+    county_full = TRIM(county_full),
+    state_id = TRIM(state_id),
+    state_name = TRIM(state_name);</code></pre>
+</div>
+<p>“James City County” and “Williamsburg city” is missing in SOL scores, but “Williamsburg-James City County” is missing in CountyIncome, so I made “Williamsburg-James City County” just “James City County” in SOLScores and dropped “Williamsburg city” in CountyIncome.</p>
+<p>There were also some other minor renaming changes to make the data sets able to match county names (so I can join later). To make these changes, I unchecked “Safe Updates” in Edit -&gt; Preferences -&gt; SQL Editor during the next steps:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>SET SQL_SAFE_UPDATES = 0;
+UPDATE SOLScores
+SET Div_Name = 'James City County'
+WHERE Div_Name = 'Williamsburg-James City County';
+
+-- Alleghany County is called that in CountyIncome but Alleghany Highlands in Sol scores, so rename highlands to county
+UPDATE SOLScores
+SET Div_Name = REPLACE(Div_Name, 'Alleghany Highlands', 'Alleghany County')
+WHERE Div_Name = 'Alleghany Highlands';
+
+
+-- West point is not in CountyIncome (in SOLScores) but King William County is (where West Point is located)
+UPDATE SOLScores
+SET Div_Name = 'King William County'
+WHERE Div_Name = 'West Point';
+
+-- Similaryly, Colonial Beach is not in CountyIncome but Westmoreland County is
+UPDATE SOLScores
+SET Div_Name = 'Westmoreland County'
+WHERE Div_Name = 'Colonial Beach';</code></pre>
+</div>
+<p>Cities are missing in SOLscores because of a lower case ‘city’ in CountyIncome and upper case ‘City’ in SOLScores. This appeared to not be in an issue in MySQL Workbench, but I remember this being an issue in Alteryx, so wanted to change preemptively:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>UPDATE CountyIncome
+SET CountyName = REGEXP_REPLACE(CountyName, '\\bcity\\b', 'City');</code></pre>
+</div>
+<p>Lastly, Bedford, Williamsburg, Emporia, and Fairfax cities are in CountyIncome but not in SOLScores. Since we don’t have SOL score information for these cities, it’s not a wise assumption to lump these cities in with their county counterparts. Since it’s only 4 cities, I’m just going to drop them (No scores are being dropped - it’s just median income information).</p>
+<p>The previous steps do make an assumption that Williamsburg and James City County median incomes are the same, which is likely not the case. For this project though, I’m going to assume so to avoid a headache but would not do so in a real world scenario project.</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>DELETE FROM CountyIncome
+WHERE CountyName LIKE '%Bedford City%'
+   OR CountyName LIKE '%Emporia City%'
+   OR CountyName LIKE '%Fairfax City%'
+   OR CountyName LIKE '%Williamsburg City%';
+SET SQL_SAFE_UPDATES = 1;</code></pre>
+</div>
+</section>
+<section id="transposing-and-cross-tabbing" class="level2">
+<h2 class="anchored" data-anchor-id="transposing-and-cross-tabbing">Transposing and Cross Tabbing<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#transposing-and-cross-tabbing" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>In the next couple sections, I transposed column headers into row values, parsed them into separate columns, and then back into column headers. This was because the original column headers made things messy. I’ll show why below:</p>
+<p>Original Data Format:</p>
+<p><img src="./index_files/OriginalTable.png" class="img-fluid"></p>
+<p>Desired Data Format:</p>
+<p><img src="./index_files/GoalTable.png" class="img-fluid"></p>
+<p>To begin, I created a new table for transposed data in case there was a mistake, making me lose the base table:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE SOLScores_Transposed (
+    _id INT,
+    LEVEL VARCHAR(10),
+    Div_Num INT,
+    Div_Name VARCHAR(100),
+    Subject VARCHAR(50),
+    Grade VARCHAR(50),
+    Test VARCHAR(50),
+    Pass_Rate_Type VARCHAR(25),
+    Pass_Rate_Value VARCHAR(10)
+);</code></pre>
+</div>
+<p>I then inserted all data while transposing the columns in question to row values in two different columns: Pass_Rate_Type and Pass_Rate_Value</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>INSERT INTO SOLScores_Transposed (_id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, Pass_Rate_Type, Pass_Rate_Value)
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'PassRate_2020_2021' AS Pass_Rate_Type, `PassRate_2020_2021` AS Pass_Rate_Value
+FROM SOLScores
+
+UNION ALL
+
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'PassRate_2021_2022' AS Pass_Rate_Type, `PassRate_2021_2022` AS Pass_Rate_Value
+FROM SOLScores
+
+UNION ALL
+
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'PassRate_2022_2023' AS Pass_Rate_Type, `PassRate_2022_2023` AS Pass_Rate_Value
+FROM SOLScores
+
+UNION ALL
+
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'AdvPassRate_2020_2021' AS Pass_Rate_Type, `AdvPassRate_2020_2021` AS Pass_Rate_Value
+FROM SOLScores
+
+UNION ALL
+
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'AdvPassRate_2021_2022' AS Pass_Rate_Type, `AdvPassRate_2021_2022` AS Pass_Rate_Value
+FROM SOLScores
+
+UNION ALL
+
+SELECT _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, 
+       'AdvPassRate_2022_2023' AS Pass_Rate_Type, `AdvPassRate_2022_2023` AS Pass_Rate_Value
+FROM SOLScores;</code></pre>
+</div>
+<p>The ’’ gave me that string in the Pass_Rate_Type column while the `` gave me the corresponding values that were in that column. I used UNION ALL because I wanted to stack all values, not wanting to check and eliminate duplicate rows or anything like that.</p>
+<p>Before parsing the row values, I wanted to have the values in the form ‘AdvPassRate 2020-2021’ for example. They were in the form ‘PassRate_2020_2021’</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>UPDATE SOLScores_Transposed
+SET Pass_Rate_Type = CONCAT(
+    REPLACE(SUBSTRING_INDEX(Pass_Rate_Type, '_', 1), '_', ' '), 
+    ' ',
+    REPLACE(SUBSTRING_INDEX(Pass_Rate_Type, '_', -2), '_', '-')
+);</code></pre>
+</div>
+<p>This chunk updated those values so that the first ‘_’ became a space and the second a ‘-’</p>
+<p>Next, I broke the values up in to two columns. I first created the columns and then broke up Pass_Rate_Type into those columns.</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>ALTER TABLE SOLScores_Transposed
+ADD COLUMN Rate_Type VARCHAR(40),
+ADD COLUMN Year_Range VARCHAR(40);
+
+UPDATE SOLScores_Transposed
+SET 
+    Rate_Type = SUBSTRING_INDEX(Pass_Rate_Type, ' ', 1),
+    Year_Range = SUBSTRING_INDEX(Pass_Rate_Type, ' ', -1);</code></pre>
+</div>
+<section id="cross-tab" class="level3">
+<h3 class="anchored" data-anchor-id="cross-tab">Cross Tab<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#cross-tab" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h3>
+<p>This is what the data looks like now:</p>
+<p><img src="./index_files/PreCrossTab.png" class="img-fluid"> I wanted PassRate and AdvPassRate to be their own column headers, with the values beneath it. So the whole data set would look like grade, county, year, test, subject, and the pass rate/advanced pass rate of that combination.</p>
+<p>I first created a new table for the cross tab to make sure I didn’t undo all my work:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE SOLScores_CrossTab AS
+SELECT 
+    _id,
+    LEVEL,
+    Div_Num,
+    Div_Name AS County,
+    Subject,
+    Grade,
+    Test,
+    Year_Range AS BeginYear,
+    MAX(CASE WHEN Rate_Type = 'PassRate' THEN Pass_Rate_Value END) AS PassRate,
+    MAX(CASE WHEN Rate_Type = 'AdvPassRate' THEN Pass_Rate_Value END) AS AdvPassRate
+FROM SOLScores_Transposed
+GROUP BY 
+    _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, Year_Range;</code></pre>
+</div>
+<p>This worked, so I created my last SOLScores table to insert everything into with the new cross tab code as well:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE SOLScores_Final (
+    _id INT,
+    LEVEL VARCHAR(10),
+    Div_Num INT,
+    County VARCHAR(100),
+    Subject VARCHAR(50),
+    Grade VARCHAR(40),
+    Test VARCHAR(50),
+    Years VARCHAR(20),
+    PassRate VARCHAR(10),
+    AdvPassRate VARCHAR(10)
+);
+
+INSERT INTO SOLScores_Final (_id, LEVEL, Div_Num, County, Subject, Grade, Test, Years, PassRate, AdvPassRate)
+SELECT 
+    _id,
+    LEVEL,
+    Div_Num,
+    Div_Name AS County,
+    Subject,
+    Grade,
+    Test,
+    Year_Range AS Years,
+    MAX(CASE WHEN Rate_Type = 'PassRate' THEN Pass_Rate_Value END) AS PassRate,
+    MAX(CASE WHEN Rate_Type = 'AdvPassRate' THEN Pass_Rate_Value END) AS AdvPassRate
+FROM SOLScores_Transposed
+GROUP BY 
+    _id, LEVEL, Div_Num, Div_Name, Subject, Grade, Test, Year_Range;</code></pre>
+</div>
+<p>Next, I wanted to break up Years (in the format 2020-2021 for example) into one column BeginYear (2020 in this case) and EndYear (2021):</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>ALTER TABLE SOLScores_Final
+ADD COLUMN BeginYear VARCHAR(4),
+ADD COLUMN EndYear VARCHAR(4);
+
+UPDATE SOLScores_Final
+SET 
+    BeginYear = SUBSTRING_INDEX(Years, '-', 1),
+    EndYear = SUBSTRING_INDEX(Years, '-', -1);
+
+alter table solscores_final
+drop column years;</code></pre>
+</div>
+<p>Lastly, I had some values “&lt;” which signified incomplete entries, so I wanted to remove those and just make the value null:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>UPDATE SOLScores_Final
+SET 
+    PassRate = CASE WHEN PassRate LIKE '%&lt;%' THEN NULL 
+               ELSE PassRate 
+               END,
+    AdvPassRate = CASE WHEN AdvPassRate LIKE '%&lt;%' THEN NULL 
+                  ELSE AdvPassRate 
+                  END;
+
+-- Change blank values to null values for consistency: 
+
+UPDATE SOLScores_Final
+SET 
+    PassRate = NULLIF(PassRate, ''),
+    AdvPassRate = NULLIF(AdvPassRate, '');</code></pre>
+</div>
+<p>The SOLScores_Final dataset now is in the form that was desired, and ready to be joined with the other two datasets.</p>
+</section>
+</section>
+<section id="countyincome" class="level2">
+<h2 class="anchored" data-anchor-id="countyincome">CountyIncome<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#countyincome" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>I only needed to a couple things with CountyIncome to make it able to join to SOL Scores, the first being to filter the years to only 2020-2023 to match the years we have scores for:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE CountyIncome_Filtered AS
+SELECT *
+FROM CountyIncome
+WHERE Year IN (2020, 2021, 2022, 2023);</code></pre>
+</div>
+<p>I created a new table to preserve the original table</p>
+<p>Then I inner joined that table to SOL Scores on the county name and the year. I used BeginYear from SOL Scores (an arbitrary choice). I also only selected the columns I wanted, there would’ve been some duplicates if I selected all:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE SOLIncome AS
+SELECT 
+    s.LEVEL,
+    s.Div_Num,
+    s.County,         
+    s.Subject,
+    s.Grade,
+    s.Test,
+    s.BeginYear,      
+    s.EndYear,        
+    s.PassRate,
+    s.AdvPassRate,
+    c.StateName,
+    c.StateCode,
+    c.TotalEstimate,
+    c.TotalMargin
+FROM SOLScores_Final AS s
+INNER JOIN CountyIncome_Filtered AS c 
+    ON s.County = c.CountyName
+    AND s.BeginYear = c.Year;</code></pre>
+</div>
+<p>Finally, I joined vacounties to include population, latitude, and longitude data for tableau analysis later:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE SOLTotal AS
+SELECT 
+    s.*,
+    v.lat,
+    v.lng,
+    v.population
+FROM SOLIncome AS s
+INNER JOIN VACounties AS v 
+    ON s.County = v.county_full;</code></pre>
+</div>
+<section id="alteryx-workflow-all-steps-above" class="level3">
+<h3 class="anchored" data-anchor-id="alteryx-workflow-all-steps-above">Alteryx Workflow: All steps above<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#alteryx-workflow-all-steps-above" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h3>
+<p><img src="./index_files/alteryxWrangle.png" class="img-fluid"></p>
+</section>
+</section>
+</section>
+<section id="fact-and-dimension-tables" class="level1">
+<h1>Fact and Dimension Tables</h1>
+<p>Creating dimension tables and a fact table helps consolidate the data into an easy to interpret format for the project we are working on (County SOL scores vs Median Income)</p>
+<p>First, I created my dimension tables:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE Calendar (
+    CalendarKey INT AUTO_INCREMENT PRIMARY KEY,
+    BeginYear VARCHAR(4),
+    EndYear VARCHAR(4)
+);
+
+CREATE TABLE School (
+    SchoolKey INT AUTO_INCREMENT PRIMARY KEY,
+    Grade VARCHAR(20),
+    SchoolType VARCHAR(50)
+);
+
+CREATE TABLE County (
+    CountyKey INT AUTO_INCREMENT PRIMARY KEY,
+    County VARCHAR(100),
+    Div_Num INT,
+    Population INT,
+    Lat DECIMAL(8,4),
+    Lng DECIMAL(8,4)
+);
+
+CREATE TABLE Test (
+    TestKey INT AUTO_INCREMENT PRIMARY KEY,
+    Subject VARCHAR(100),
+    Test VARCHAR(100)
+);</code></pre>
+</div>
+<p>Then, I inserted the relevant data into those tables, and made a unique key for each table by autoincrementing:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>INSERT INTO Calendar (BeginYear, EndYear)
+SELECT DISTINCT BeginYear, EndYear
+FROM soltotal;
+
+INSERT INTO School (Grade, SchoolType)
+SELECT DISTINCT 
+    Grade,
+    CASE 
+        WHEN Grade IN ('Gr 3', 'Gr 4', 'Gr 5') THEN 'Elementary School'
+        WHEN Grade IN ('Gr 6', 'Gr 7', 'Gr 8', 'Content Specific') THEN 'Middle School'
+        ELSE 'High School'
+    END AS SchoolType
+FROM soltotal;
+
+INSERT INTO County (County, Div_Num, Population, Lat, Lng)
+SELECT DISTINCT 
+    County,
+    Div_Num,
+    Population,
+    Lat,
+    Lng
+FROM soltotal;
+
+INSERT INTO Test (Subject, Test)
+SELECT DISTINCT 
+    Subject,
+    Test
+FROM soltotal;</code></pre>
+</div>
+<p>Lastly, I created the fact table that shows Pass Rates, Advanced Pass Rates, and Income for each unique key combination. I also created a unique key for the fact table to avoid a large composite key:</p>
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+<pre class="{sql}"><code>CREATE TABLE ITRFact (
+    ITRKey INT AUTO_INCREMENT PRIMARY KEY,
+    PassRate VARCHAR(10),
+    AdvPassRate VARCHAR(10),
+    Income INT,
+    CalendarKey INT,
+    CountyKey INT,
+    SchoolKey INT,
+    TestKey INT,
+    FOREIGN KEY (CalendarKey) REFERENCES Calendar(CalendarKey),
+    FOREIGN KEY (CountyKey) REFERENCES County(CountyKey),
+    FOREIGN KEY (SchoolKey) REFERENCES School(SchoolKey),
+    FOREIGN KEY (TestKey) REFERENCES Test(TestKey)
+);
+
+INSERT INTO ITRFact (PassRate, AdvPassRate, Income, CalendarKey, CountyKey, SchoolKey, TestKey)
+SELECT 
+    s.PassRate,
+    s.AdvPassRate,
+    s.TotalEstimate AS Income,
+    cal.CalendarKey,
+    co.CountyKey,
+    sc.SchoolKey,
+    t.TestKey
+FROM soltotal AS s
+JOIN Calendar AS cal ON s.BeginYear = cal.BeginYear AND s.EndYear = cal.EndYear
+JOIN County AS co ON s.County = co.County AND s.Div_Num = co.Div_Num
+JOIN School AS sc ON s.Grade = sc.Grade
+JOIN Test AS t ON s.Subject = t.Subject AND s.Test = t.Test;</code></pre>
+</div>
+<p>The following is the schema (different table names):</p>
+<p><img src="./index_files/sqlReverse.png" class="img-fluid"></p>
+<section id="alteryx-workflows" class="level3">
+<h3 class="anchored" data-anchor-id="alteryx-workflows">Alteryx Workflows:<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#alteryx-workflows" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h3>
+<p>Dimension Tables: <img src="./index_files/alteryxDim.png" class="img-fluid"> Fact Table: <img src="./index_files/alteryxFact.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="tableau-analysis" class="level1">
+<h1>Tableau Analysis</h1>
+<p>To get the csv to use for Tableau analysis, I used Table Data Export Wizard on SOLTotal, which had all the relevant manipulated data.</p>
+<section id="heatmaps" class="level2">
+<h2 class="anchored" data-anchor-id="heatmaps">Heatmaps:<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#heatmaps" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>The following map shows the level of average incomes across VA by county:</p>
+<p><img src="./index_files/vaIncome.png" class="img-fluid"></p>
+<p>We can see that NOVA has the highest incomes, and the corridor from Albemarle County from Williamsburg has higher incomes as well (however not as high as NOVA).</p>
+<p>The next map shows the average pass rates across VA 2020-2023 by county:</p>
+<p><img src="./index_files/passRates.png" class="img-fluid"></p>
+<p>The heatmap doesn’t tell us much here. However, we can see that the areas with the lowest pass rates tend to be cities.</p>
+<p>Finally, the map below shows the advanced pass rates across VA 2020-2023 by county:</p>
+<p><img src="./index_files/advRates.png" class="img-fluid"></p>
+<p>It’s impossible to derive correlation from heat maps, but I am seeing the same pockets as the income map. NOVA seems to have higher advanced pass rates, and the corridor of Albemarle-Williamsburg looks somewhat better than surrounding counties.</p>
+</section>
+<section id="correlation" class="level2">
+<h2 class="anchored" data-anchor-id="correlation">Correlation<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="" href="http://localhost:3701/#correlation" style="font: 1em / 1 anchorjs-icons; margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h2>
+<p>The following shows the correlation of pass rates and income:</p>
+<p><img src="./index_files/passIncCorr.png" class="img-fluid"></p>
+<p>As suspected from the heatmap, there doesn’t seem to be much correlation. An R-square of 0.1 really doesn’t say much and the points are very spread out. It’s possible income could be a minor contributing factor to pass rates, but we’d need more data to go down that route.</p>
+<p>Next, correlation of advanced pass rates and income:</p>
+<p><img src="./index_files/advPassIncCor.png" class="img-fluid"></p>
+<p>Advanced pass rates and income have a stronger correlation than the pass rates and income. The R-square is 0.29 which is still pretty weak, but a lot better than 0.1. This might be indicative of a more weak-moderate relationship, but isn’t determinant.</p>
+<p>For future analysis on this project, data on gifted programs, teacher salaries, demographics, and other school years could lead to interesting results.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+
+<script>window.backupDefine = window.define; window.define = undefined;</script>
+<script type="text/javascript" src="./index_files/quarto-preview.js.download"></script>
+<script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+<script type="text/javascript">
+  const options = {
+    origin: "",
+    search: "",
+    inputFile: "C:\Users\lucas\Desktop\Database Fall\FinalProj\solVA.qmd",
+    isPresentation: false
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    window.QuartoPreview.init(options);
+  });
+</script>
+<div><div dir="ltr" class="fui-FluentProvider fui-FluentProviderr0 ___jdtuxv0 f19n0e5 fxugw4r f1o700av fk6fouc fkhj508 figsok6 f1i3iumi"></div></div><i tabindex="0" role="none" data-tabster-dummy="" aria-hidden="true" style="position: fixed; height: 1px; width: 1px; opacity: 0.001; z-index: -1; content-visibility: hidden; top: 0px; left: 0px;"></i></body></html>
